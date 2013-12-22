@@ -1,0 +1,20 @@
+// This map is an example
+// this is a comment line
+
+options(0, 5, 100);
+options(0, 5, 100); // comment
+
+CreateObject(1337, 0.0, 10.0, 3.0, 0.0, 90.0, 45.0);
+CreateObject(1337, 0.0, 15.0, 3.0, 0.0, 90.0, 45.0); // comment
+
+CreateDynamicObject(1337, 5.0, 10.0, 3.0, 0.0, 90.0, 45.0);
+CreateDynamicObject(1337, 5.0, 15.0, 3.0, 0.0, 90.0, 45.0); // comment
+
+RemoveBuildingForPlayer(playerid, 615, 0.0, 0.0, 0.0, 200.0);
+RemoveBuildingForPlayer(playerid, 615, 0.0, 0.0, 0.0, 200.0); // comment
+
+// These lines don't work as far as I know:
+// Needs to support optional parameters: worldid, interiorid, playerid, streamdistance
+
+CreateDynamicObject(1337, 10.0, 0.0, 3.0, 0.0, 0.0, 90.0, -1, -1, -1, 420);
+// (stolen from @Patrik356b)

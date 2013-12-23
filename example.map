@@ -16,5 +16,4 @@ RemoveBuildingForPlayer(playerid, 615, 0.0, 0.0, 0.0, 200.0); // comment
 // These lines don't work as far as I know:
 // Needs to support optional parameters: worldid, interiorid, playerid, streamdistance
 
-CreateDynamicObject(1337, 10.0, 0.0, 3.0, 0.0, 0.0, 90.0, -1, -1, -1, 420);
-// (stolen from @Patrik356b)
+CreateDynamicObject(1337, 10.0, 0.0, 3.0, 0.0, 0.0, 90.0, -1, -1, -1, 450.0);

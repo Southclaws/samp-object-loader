@@ -137,7 +137,6 @@ LoadConfig()
 
 		for(new i; i < len; i++)
 		{
-			printf("%d : %c", i, line[i]);
 			if(line[i] == ' ')
 				continue;
 
@@ -149,8 +148,6 @@ LoadConfig()
 				i++;
 
 				new val = line[i] - 48;
-
-				printf("%c %d %d", line[i], line[i], val);
 
 				if(DEBUG_LEVEL_NONE < val <= DEBUG_LEVEL_LINES)
 					gDebugLevel = val;
@@ -186,7 +183,32 @@ LoadMapsFromFolder(folder[])
 	dirhandle = dir_open(foldername);
 
 	if(gDebugLevel >= DEBUG_LEVEL_FOLDERS)
-		printf("DEBUG: [LoadMapsFromFolder] Reading directory '%s'.", foldername);
+	{
+		new
+			totalfiles,
+			totalmapfiles,
+			totalfolders;
+
+		while(dir_list(dirhandle, item, type))
+		{
+			if(type == FM_FILE)
+			{
+				totalfiles++;
+
+				if(!strcmp(item[strlen(item) - 4], ".map"))
+					totalmapfiles++;
+			}
+
+			if(type == FM_DIR && strcmp(item, "..") && strcmp(item, ".") && strcmp(item, "_"))
+				totalfolders++;
+		}
+
+		// Reopen the directory so the next code can run properly.
+		dir_close(dirhandle);
+		dirhandle = dir_open(foldername);
+
+		printf("DEBUG: [LoadMapsFromFolder] Reading directory '%s': %d files, %d .map files, %d folders", foldername, totalfiles, totalmapfiles, totalfolders);
+	}
 
 	while(dir_list(dirhandle, item, type))
 	{
@@ -209,6 +231,9 @@ LoadMapsFromFolder(folder[])
 	}
 
 	dir_close(dirhandle);
+
+	if(gDebugLevel >= DEBUG_LEVEL_FOLDERS)
+		print("DEBUG: [LoadMapsFromFolder] Finished reading directory.");
 }
 
 LoadMap(filename[])
@@ -222,8 +247,19 @@ LoadMap(filename[])
 		Float:streamdist,
 
 		modelid,
-		Float:data[6],
+		Float:posx,
+		Float:posy,
+		Float:posz,
+		Float:rotx,
+		Float:roty,
+		Float:rotz,
+		objworld,
+		objinterior,
+		Float:range,
+
 		line,
+		objects,
+		operations,
 		
 		tmpObjID,
 		tmpObjIdx,
@@ -279,43 +315,63 @@ LoadMap(filename[])
 	}
 
 	if(gDebugLevel >= DEBUG_LEVEL_FILES)
-		printf("DEBUG: [LoadMap] Reading file '%s'.", filename);
+	{
+		new totallines;
+
+		while(fread(file, str))
+			totallines++;
+
+		// Reopen the file so the actual read code runs properly.
+		fclose(file);
+		file = fopen(filename, io_read);
+
+		printf("\nDEBUG: [LoadMap] Reading file '%s': %d lines.", filename, totallines);
+	}
 
 	while(fread(file, str))
 	{
 		if(gDebugLevel == DEBUG_LEVEL_LINES)
 			print(str);
 
-		if(str[0] == ';')
+		if(str[0] == '/')
 		{
 			line++;
 			continue;
 		}
 
-		if(!sscanf(str, "'options(' p<,>ddp<)>f", world[0], interior[0], streamdist))
+		if(!sscanf(str, "'options(' p<,>ddp<)>f{s[32]}", world[0], interior[0], streamdist))
 		{
 			if(gDebugLevel >= DEBUG_LEVEL_INFO)
-				printf("DEBUG: [LoadMap] Updated object options for file '%s'.", filename);
+				printf(" DEBUG: [LoadMap] Updated options to: %d, %d, %f", world[0], interior[0], streamdist);
+
+			operations++;
 		}
 
-		if(!sscanf(str, "p<(>{s[32]}p<,>dfffffp<)>f{s[4]}", modelid, data[0], data[1], data[2], data[3], data[4], data[5]))
+		if(
+			// First query: loads no optional parameters.
+			// Second query: loads all CreateDynamicObject parameters.
+			// Todo: Write a more flexible parser that supports any combination.
+			!sscanf(str, "p<(>{s[32]}p<,>dfffffp<)>f{s[32]}", modelid, posx, posy, posz, rotx, roty, rotz) ||
+			!sscanf(str, "p<(>{s[32]}p<,>dffffffdd{d}p<)>f{s[32]}", modelid, posx, posy, posz, rotx, roty, rotz, objworld, objinterior, range))
 		{
 			if(gDebugLevel == DEBUG_LEVEL_DATA)
 			{
-				printf("DEBUG: [LoadMap] Object: %d, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f",
-					modelid, data[0], data[1], data[2], data[3], data[4], data[5]);
+				printf(" DEBUG: [LoadMap] Object: %d, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f",
+					modelid, posx, posy, posz, rotx, roty, rotz);
 			}
 
-			tmpObjID = CreateDynamicObjectEx(modelid, data[0], data[1], data[2], data[3], data[4], data[5], streamdist, streamdist + 100.0, world, interior);
+			tmpObjID = CreateDynamicObjectEx(modelid, posx, posy, posz, rotx, roty, rotz, streamdist, streamdist + 100.0, world, interior);
 
 			gTotalLoadedObjects++;
+			objects++;
+			operations++;
 		}
 
-		if(!sscanf(str, "'objtxt(' p<\">{s[1]}s[32]p<,>{s[1]} ds[32]p<\">{s[1]}s[32]p<,>{s[1]}ddddp<)>d", tmpObjText, tmpObjIdx, tmpObjRes, tmpObjFont, tmpObjFontSize, tmpObjBold, tmpObjFontCol, tmpObjBackCol, tmpObjAlign))
+		if(!sscanf(str, "'objtxt(' p<\">{s[1]}s[32]p<,>{s[1]} ds[32]p<\">{s[1]}s[32]p<,>{s[1]}ddddp<)>d{s[32]}", tmpObjText, tmpObjIdx, tmpObjRes, tmpObjFont, tmpObjFontSize, tmpObjBold, tmpObjFontCol, tmpObjBackCol, tmpObjAlign))
 		{
 			if(gDebugLevel == DEBUG_LEVEL_DATA)
 			{
-				printf("DEBUG: [LoadMap] Object Text: '%s', %d, '%s', '%s', %d, %d, %d, %d, %d",
+				printf(" DEBUG: [LoadMap] Object Text: '%s', %d, '%s', '%s', %d, %d, %d, %d, %d",
 					tmpObjText, tmpObjIdx, tmpObjRes, tmpObjFont, tmpObjFontSize, tmpObjBold, tmpObjFontCol, tmpObjBackCol, tmpObjAlign);
 			}
 
@@ -340,40 +396,46 @@ LoadMap(filename[])
 			}
 
 			SetDynamicObjectMaterialText(tmpObjID, tmpObjIdx, tmpObjText, tmpObjRes, tmpObjFont, tmpObjFontSize, tmpObjBold, tmpObjFontCol, tmpObjBackCol, tmpObjAlign);
+			operations++;
 		}
 
-		if(!sscanf(str, "'objmat('p<,>dd p<\">{s[1]}s[32]p<,>{s[1]} p<\">{s[1]}s[32]p<,>{s[1]} p<)>d", tmpObjIdx, tmpObjMod, tmpObjTxd, tmpObjTex, tmpObjMatCol))
+		if(!sscanf(str, "'objmat('p<,>dd p<\">{s[1]}s[32]p<,>{s[1]} p<\">{s[1]}s[32]p<,>{s[1]} p<)>d{s[32]}", tmpObjIdx, tmpObjMod, tmpObjTxd, tmpObjTex, tmpObjMatCol))
 		{
 			if(gDebugLevel == DEBUG_LEVEL_DATA)
 			{
-				printf("DEBUG: [LoadMap] Object Material: %d, %d, '%s', '%s', %d",
+				printf(" DEBUG: [LoadMap] Object Material: %d, %d, '%s', '%s', %d",
 					tmpObjIdx, tmpObjMod, tmpObjTxd, tmpObjTex, tmpObjMatCol);
 			}
 
 			SetDynamicObjectMaterial(tmpObjID, tmpObjIdx, tmpObjMod, tmpObjTxd, tmpObjTex, tmpObjMatCol);
+			operations++;
 		}
 
-		if(!sscanf(str, "p<(>{s[32]}p<,>'playerid'dfffp<)>f{s[8]}", modelid, data[0], data[1], data[2], data[3]))
+		if(!sscanf(str, "'RemoveBuildingForPlayer(' p<,>'playerid'dfffp<)>f{s[32]}", modelid, posx, posy, posz, range))
 		{
 			if(gDebugLevel == DEBUG_LEVEL_DATA)
 			{
-				printf("DEBUG: [LoadMap] Removal: %d, %.2f, %.2f, %.2f, %.2f",
-					modelid, data[0], data[1], data[2], data[3]);
+				printf(" DEBUG: [LoadMap] Removal: %d, %.2f, %.2f, %.2f, %.2f",
+					modelid, posx, posy, posz, range);
 			}
 
 			gModelRemoveData[gTotalObjectsToRemove][remove_Model] = modelid;
-			gModelRemoveData[gTotalObjectsToRemove][remove_PosX] = data[0];
-			gModelRemoveData[gTotalObjectsToRemove][remove_PosY] = data[1];
-			gModelRemoveData[gTotalObjectsToRemove][remove_PosZ] = data[2];
-			gModelRemoveData[gTotalObjectsToRemove][remove_Range] = data[3];
+			gModelRemoveData[gTotalObjectsToRemove][remove_PosX] = posx;
+			gModelRemoveData[gTotalObjectsToRemove][remove_PosY] = posy;
+			gModelRemoveData[gTotalObjectsToRemove][remove_PosZ] = posz;
+			gModelRemoveData[gTotalObjectsToRemove][remove_Range] = range;
 
 			gTotalObjectsToRemove++;
+			operations++;
 		}
 
 		line++;
 	}
 
 	fclose(file);
+
+	if(gDebugLevel >= DEBUG_LEVEL_FILES)
+		printf("DEBUG: [LoadMap] Finished reading file. %d objects loaded from %d lines, %d total operations.", objects, line, operations);
 
 	return line;
 }

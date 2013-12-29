@@ -443,6 +443,8 @@ LoadMap(filename[])
 public OnPlayerConnect(playerid)
 {
 	RemoveObjectsForPlayer(playerid);
+
+	return 1;
 }
 
 RemoveObjectsForPlayer(playerid)

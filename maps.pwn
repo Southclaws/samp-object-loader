@@ -333,7 +333,7 @@ LoadMap(filename[])
 		if(gDebugLevel == DEBUG_LEVEL_LINES)
 			print(str);
 
-		if(str[0] == '/')
+		if(str[0] < 65)
 		{
 			line++;
 			continue;

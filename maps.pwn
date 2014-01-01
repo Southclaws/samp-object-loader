@@ -240,11 +240,18 @@ LoadMap(filename[])
 {
 	new
 		File:file,
-		str[192],
+		line[256],
+
+		linenumber,
+		objects,
+		operations,
 		
-		world[1],
-		interior[1],
-		Float:streamdist,
+		funcname[32],
+		funcargs[128],
+		
+		globalworld[1],
+		globalinterior[1],
+		Float:globalrange,
 
 		modelid,
 		Float:posx,
@@ -253,14 +260,10 @@ LoadMap(filename[])
 		Float:rotx,
 		Float:roty,
 		Float:rotz,
-		objworld,
-		objinterior,
+		world[1],
+		interior[1],
 		Float:range,
 
-		line,
-		objects,
-		operations,
-		
 		tmpObjID,
 		tmpObjIdx,
 		tmpObjMod,
@@ -296,9 +299,9 @@ LoadMap(filename[])
 			"512x512"
 		};
 
-	world[0] = -1;
-	interior[0] = -1;
-	streamdist = 350.0;
+	globalworld[0] = -1;
+	globalinterior[0] = -1;
+	globalrange = 350.0;
 
 	if(!fexist(filename))
 	{
@@ -318,7 +321,7 @@ LoadMap(filename[])
 	{
 		new totallines;
 
-		while(fread(file, str))
+		while(fread(file, line))
 			totallines++;
 
 		// Reopen the file so the actual read code runs properly.
@@ -328,116 +331,141 @@ LoadMap(filename[])
 		printf("\nDEBUG: [LoadMap] Reading file '%s': %d lines.", filename, totallines);
 	}
 
-	while(fread(file, str))
+	while(fread(file, line))
 	{
 		if(gDebugLevel == DEBUG_LEVEL_LINES)
-			print(str);
+			print(line);
 
-		if(str[0] < 65)
+		if(line[0] < 65)
 		{
-			line++;
+			linenumber++;
 			continue;
 		}
 
-		if(!sscanf(str, "'options(' p<,>ddp<)>f{s[32]}", world[0], interior[0], streamdist))
+		if(sscanf(line, "p<(>s[32]p<)>s[128]{s[96]}", funcname, funcargs))
 		{
-			if(gDebugLevel >= DEBUG_LEVEL_INFO)
-				printf(" DEBUG: [LoadMap] Updated options to: %d, %d, %f", world[0], interior[0], streamdist);
-
-			operations++;
+			linenumber++;
+			continue;
 		}
 
-		if(
-			// First query: loads no optional parameters.
-			// Second query: loads all CreateDynamicObject parameters.
-			// Todo: Write a more flexible parser that supports any combination.
-			!sscanf(str, "p<(>{s[32]}p<,>dfffffp<)>f{s[32]}", modelid, posx, posy, posz, rotx, roty, rotz) ||
-			!sscanf(str, "p<(>{s[32]}p<,>dffffffdd{d}p<)>f{s[32]}", modelid, posx, posy, posz, rotx, roty, rotz, objworld, objinterior, range))
+		if(!strcmp(funcname, "options", false))
 		{
-			if(gDebugLevel == DEBUG_LEVEL_DATA)
+			if(!sscanf(funcargs, "p<,>ddf", globalworld[0], globalinterior[0], globalrange))
 			{
-				printf(" DEBUG: [LoadMap] Object: %d, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f",
-					modelid, posx, posy, posz, rotx, roty, rotz);
+				if(gDebugLevel >= DEBUG_LEVEL_INFO)
+					printf(" DEBUG: [LoadMap] Updated options to: %d, %d, %f", globalworld[0], globalinterior[0], globalrange);
+
+				operations++;
 			}
-
-			tmpObjID = CreateDynamicObjectEx(modelid, posx, posy, posz, rotx, roty, rotz, streamdist, streamdist + 100.0, world, interior);
-
-			gTotalLoadedObjects++;
-			objects++;
-			operations++;
 		}
 
-		if(!sscanf(str, "'objtxt(' p<\">{s[1]}s[32]p<,>{s[1]} ds[32]p<\">{s[1]}s[32]p<,>{s[1]}ddddp<)>d{s[32]}", tmpObjText, tmpObjIdx, tmpObjRes, tmpObjFont, tmpObjFontSize, tmpObjBold, tmpObjFontCol, tmpObjBackCol, tmpObjAlign))
+		if(!strcmp(funcname, "Create", false, 6)) // Scan for any function starting with 'Create', this covers CreateObject, CreateDynamicObject, CreateStreamedObject, etc.
 		{
-			if(gDebugLevel == DEBUG_LEVEL_DATA)
+			if(!sscanf(funcargs, "p<,>dffffffD(-1)D(-1){D(-1)}F(-1.0)", modelid, posx, posy, posz, rotx, roty, rotz, world[0], interior[0], range))
 			{
-				printf(" DEBUG: [LoadMap] Object Text: '%s', %d, '%s', '%s', %d, %d, %d, %d, %d",
-					tmpObjText, tmpObjIdx, tmpObjRes, tmpObjFont, tmpObjFontSize, tmpObjBold, tmpObjFontCol, tmpObjBackCol, tmpObjAlign);
-			}
-
-			new len = strlen(tmpObjText);
-
-			for(new i; i < sizeof(matSizeTable); i++)
-			{
-				if(strfind(tmpObjResName, matSizeTable[i]) != -1)
-					tmpObjRes = (i + 1) * 10;
-			}
-
-			for(new i; i < len; i++)
-			{
-				if(tmpObjText[i] == '\\' && i != len-1)
+				if(gDebugLevel == DEBUG_LEVEL_DATA)
 				{
-					if(tmpObjText[i+1] == 'n')
+					printf(" DEBUG: [LoadMap] Object: %d, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f",
+						modelid, posx, posy, posz, rotx, roty, rotz);
+				}
+
+				if(range == -1.0)
+					range = globalrange;
+
+				if(world[0] == -1)
+					world = globalworld;
+
+				if(interior[0] == -1)
+					interior = globalinterior;
+
+				tmpObjID = CreateDynamicObjectEx(modelid, posx, posy, posz, rotx, roty, rotz, range, range + 100.0, world, interior);
+
+				gTotalLoadedObjects++;
+				objects++;
+				operations++;
+			}
+		}
+
+		if(!strcmp(funcname, "SetObjectMaterialText"))
+		{
+			if(!sscanf(funcargs, "p<,>{s[16]} p<\">{s[1]}s[32]p<,>{s[1]} d s[32] p<\">{s[1]}s[32]p<,>{s[1]} ddddd", tmpObjText, tmpObjIdx, tmpObjRes, tmpObjFont, tmpObjFontSize, tmpObjBold, tmpObjFontCol, tmpObjBackCol, tmpObjAlign))
+			{
+				if(gDebugLevel == DEBUG_LEVEL_DATA)
+				{
+					printf(" DEBUG: [LoadMap] Object Text: '%s', %d, '%s', '%s', %d, %d, %d, %d, %d",
+						tmpObjText, tmpObjIdx, tmpObjRes, tmpObjFont, tmpObjFontSize, tmpObjBold, tmpObjFontCol, tmpObjBackCol, tmpObjAlign);
+				}
+
+				new len = strlen(tmpObjText);
+
+				for(new i; i < sizeof(matSizeTable); i++)
+				{
+					if(strfind(tmpObjResName, matSizeTable[i]) != -1)
+						tmpObjRes = (i + 1) * 10;
+				}
+
+				for(new i; i < len; i++)
+				{
+					if(tmpObjText[i] == '\\' && i != len-1)
 					{
-						strdel(tmpObjText, i, i+1);
-						tmpObjText[i] = '\n';
+						if(tmpObjText[i+1] == 'n')
+						{
+							strdel(tmpObjText, i, i+1);
+							tmpObjText[i] = '\n';
+						}
 					}
 				}
-			}
 
-			SetDynamicObjectMaterialText(tmpObjID, tmpObjIdx, tmpObjText, tmpObjRes, tmpObjFont, tmpObjFontSize, tmpObjBold, tmpObjFontCol, tmpObjBackCol, tmpObjAlign);
-			operations++;
+				SetDynamicObjectMaterialText(tmpObjID, tmpObjIdx, tmpObjText, tmpObjRes, tmpObjFont, tmpObjFontSize, tmpObjBold, tmpObjFontCol, tmpObjBackCol, tmpObjAlign);
+				operations++;
+			}
 		}
 
-		if(!sscanf(str, "'objmat('p<,>dd p<\">{s[1]}s[32]p<,>{s[1]} p<\">{s[1]}s[32]p<,>{s[1]} p<)>d{s[32]}", tmpObjIdx, tmpObjMod, tmpObjTxd, tmpObjTex, tmpObjMatCol))
+		if(!strcmp(funcname, "SetObjectMaterial"))
 		{
-			if(gDebugLevel == DEBUG_LEVEL_DATA)
+			if(!sscanf(funcargs, "p<,>{s[16]}dd p<\">{s[1]}s[32]p<,>{s[1]} p<\">{s[1]}s[32]p<,>{s[1]} d", tmpObjIdx, tmpObjMod, tmpObjTxd, tmpObjTex, tmpObjMatCol))
 			{
-				printf(" DEBUG: [LoadMap] Object Material: %d, %d, '%s', '%s', %d",
-					tmpObjIdx, tmpObjMod, tmpObjTxd, tmpObjTex, tmpObjMatCol);
-			}
+				if(gDebugLevel == DEBUG_LEVEL_DATA)
+				{
+					printf(" DEBUG: [LoadMap] Object Material: %d, %d, '%s', '%s', %d",
+						tmpObjIdx, tmpObjMod, tmpObjTxd, tmpObjTex, tmpObjMatCol);
+				}
 
-			SetDynamicObjectMaterial(tmpObjID, tmpObjIdx, tmpObjMod, tmpObjTxd, tmpObjTex, tmpObjMatCol);
-			operations++;
+				SetDynamicObjectMaterial(tmpObjID, tmpObjIdx, tmpObjMod, tmpObjTxd, tmpObjTex, tmpObjMatCol);
+				operations++;
+			}
 		}
 
-		if(!sscanf(str, "'RemoveBuildingForPlayer(' p<,>'playerid'dfffp<)>f{s[32]}", modelid, posx, posy, posz, range))
+		if(!strcmp(funcname, "RemoveBuildingForPlayer"))
 		{
-			if(gDebugLevel == DEBUG_LEVEL_DATA)
+			if(!sscanf(funcargs, "p<,>{s[16]}dffff", modelid, posx, posy, posz, range))
 			{
-				printf(" DEBUG: [LoadMap] Removal: %d, %.2f, %.2f, %.2f, %.2f",
-					modelid, posx, posy, posz, range);
+				if(gDebugLevel == DEBUG_LEVEL_DATA)
+				{
+					printf(" DEBUG: [LoadMap] Removal: %d, %.2f, %.2f, %.2f, %.2f",
+						modelid, posx, posy, posz, range);
+				}
+		
+				gModelRemoveData[gTotalObjectsToRemove][remove_Model] = modelid;
+				gModelRemoveData[gTotalObjectsToRemove][remove_PosX] = posx;
+				gModelRemoveData[gTotalObjectsToRemove][remove_PosY] = posy;
+				gModelRemoveData[gTotalObjectsToRemove][remove_PosZ] = posz;
+				gModelRemoveData[gTotalObjectsToRemove][remove_Range] = range;
+		
+				gTotalObjectsToRemove++;
+				operations++;
 			}
-
-			gModelRemoveData[gTotalObjectsToRemove][remove_Model] = modelid;
-			gModelRemoveData[gTotalObjectsToRemove][remove_PosX] = posx;
-			gModelRemoveData[gTotalObjectsToRemove][remove_PosY] = posy;
-			gModelRemoveData[gTotalObjectsToRemove][remove_PosZ] = posz;
-			gModelRemoveData[gTotalObjectsToRemove][remove_Range] = range;
-
-			gTotalObjectsToRemove++;
-			operations++;
 		}
 
-		line++;
+		linenumber++;
 	}
 
 	fclose(file);
 
 	if(gDebugLevel >= DEBUG_LEVEL_FILES)
-		printf("DEBUG: [LoadMap] Finished reading file. %d objects loaded from %d lines, %d total operations.", objects, line, operations);
+		printf("DEBUG: [LoadMap] Finished reading file. %d objects loaded from %d lines, %d total operations.", objects, linenumber, operations);
 
-	return line;
+	return linenumber;
 }
 
 public OnPlayerConnect(playerid)

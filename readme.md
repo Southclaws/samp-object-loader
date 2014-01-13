@@ -14,15 +14,27 @@ Default load directory: ```./scriptfiles/Maps/```
 ```CreateObject(1337, 5.0, -5.0, 3.0, 90.0, 90.0, 90.0);```
 ```CreateDynamicObject(1337, 5.0, -5.0, 3.0, 90.0, 90.0, 90.0);```
 
-Any string is read as the function name, this is also valid:
+Any string starting with 'Create' is parsed as a CreateObject line, this is also valid:
 
-```AnythingGoes(1337, 5.0, -5.0, 3.0, 90.0, 90.0, 90.0);```
+```CreateCake(1337, 5.0, -5.0, 3.0, 90.0, 90.0, 90.0);```
+
+
+### Object Materials
+
+```cpp
+CreateObject(1337, 5.0, -5.0, 3.0, 90.0, 90.0, 90.0);
+SetObjectMaterial(object, 0, 18837, "mickeytextures", "ws_gayflag1", 0);
+```
+Any ```SetObjectMaterial``` or ```SetObjectMaterialText``` line will affect the last created object.
+The first parameter (```objectid```) is ignored and can be any string for flexibility.
+
 
 ### Object Removal
 
 ```RemoveBuildingForPlayer(playerid, 615, 0.0, 0.0, 0.0, 200.0);```
 
-'playerid' is ignored, but still valid for flexibility.
+'playerid' is ignored, but still valid to allow flexibility when copying from .pwn source code.
+
 
 ### Options
 
@@ -32,7 +44,7 @@ these settings when creating objects. This function can be used multiple times.
 
 Syntax: ```options(world, interior, stream distance)```
 
-```options(0, 0, 300)```
+```options(0, 1, 300)```
 
 Set the virtual world to 0, interior to 1 and stream distance to 300
 
@@ -45,6 +57,7 @@ Single line ```//``` comments are supported at the end of lines or on their own.
     options(0, 1, 200) // comment
     CreateObject(1337, 5.0, -5.0, 3.0, 90.0, 90.0, 90.0); // comment
 
+I have plans for adding block comments in the future.
 
 
 ## Debugging
@@ -72,3 +85,4 @@ More cfg options:
 
 Support for optional Create(Dynamic)Object parameters.
 Test more cases of coding styles, line styles, support flexibility.
+Block comment support with traditional C syntax ```/* */```

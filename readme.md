@@ -66,11 +66,11 @@ Create a file inside the default directory called 'maps.cfg'
 Use debug option followed by level parameter to make the script load with debug
 mode enabled. Each 'level' of debugging offers different information:
 
-* ```d0``` = Print information messages
-* ```d1``` = Print each folder
-* ```d2``` = Print each loaded file
-* ```d3``` = Print each loaded data line in each file
-* ```d4``` = Print each line in each file
+* ```-d0``` = Print information messages
+* ```-d1``` = Print each folder
+* ```-d2``` = Print each loaded file
+* ```-d3``` = Print each loaded data line in each file
+* ```-d4``` = Print each line in each file
 
 
 ## Todo

@@ -518,7 +518,7 @@ public OnPlayerDisconnect(playerid, reason)
 
 	GetPlayerName(playerid, name, MAX_PLAYER_NAME);
 
-	format(filename, sizeof(filename), DIRECTORY_SESSION"%s.dat", name);
+	format(filename, sizeof(filename), DIRECTORY_MAPS DIRECTORY_SESSION"%s.dat", name);
 
 	if(gDebugLevel >= DEBUG_LEVEL_INFO)
 		printf("INFO: [OnPlayerDisconnect] Removing session data file for %s", name);
@@ -538,9 +538,12 @@ RemoveObjects_FirstLoad(playerid)
 
 	GetPlayerName(playerid, name, MAX_PLAYER_NAME);
 
-	format(filename, sizeof(filename), DIRECTORY_SESSION"%s.dat", name);
+	format(filename, sizeof(filename), DIRECTORY_MAPS DIRECTORY_SESSION"%s.dat", name);
 
 	file = fopen(filename, io_write);
+
+	if(!file)
+		printf("ERROR: [RemoveObjects_FirstLoad] Opening file '%s' for write.", filename);
 
 	if(gDebugLevel >= DEBUG_LEVEL_INFO)
 		printf("INFO: [RemoveObjects_FirstLoad] Created session data for %s", name);
@@ -585,7 +588,7 @@ RemoveObjects_OnLoad(playerid)
 
 	GetPlayerName(playerid, name, MAX_PLAYER_NAME);
 
-	format(filename, sizeof(filename), DIRECTORY_SESSION"%s.dat", name);
+	format(filename, sizeof(filename), DIRECTORY_MAPS DIRECTORY_SESSION"%s.dat", name);
 
 	if(!fexist(filename))
 	{

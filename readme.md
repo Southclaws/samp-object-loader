@@ -68,7 +68,7 @@ I have plans for adding block comments in the future.
 
 ## Debugging
 
-Create a file inside the default directory called 'maps.cfg'
+Create a file inside './scriptfiles/Maps/' called 'maps.cfg'
 Use debug option followed by level parameter to make the script load with debug
 mode enabled. Each 'level' of debugging offers different information:
 
@@ -89,5 +89,7 @@ More cfg options:
 * -m[value] = set object limit
 * -I[path] = include another directory for loading maps
 
+Add support for different directory-list plugins due to the FileManager plugin being banned on some hosts.
 Test more cases of coding styles, line styles, support flexibility.
 Block comment support with traditional C syntax ```/* */```
+Improved optional parameter support for insertion parameters (".worldid = 3") and underscore skipping ("_,").

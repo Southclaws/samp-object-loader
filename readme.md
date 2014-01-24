@@ -89,6 +89,5 @@ More cfg options:
 * -m[value] = set object limit
 * -I[path] = include another directory for loading maps
 
-Support for optional Create(Dynamic)Object parameters.
 Test more cases of coding styles, line styles, support flexibility.
 Block comment support with traditional C syntax ```/* */```

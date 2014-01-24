@@ -35,6 +35,12 @@ The first parameter (```objectid```) is ignored and can be any string for flexib
 
 'playerid' is ignored, but still valid to allow flexibility when copying from .pwn source code.
 
+When a player connects (or when the filterscript loads, whichever comes first) a list of removed buildings is built and saved for that player.
+
+If the filterscript reloads (perhaps to load an update to object data) any RemoveBuilding instructions that have already been called for each player are ignored. When a player disconnects, their data is discarded.
+
+This data is stored in binary format in ```./scriptfiles/Maps/session/```
+
 
 ### Options
 

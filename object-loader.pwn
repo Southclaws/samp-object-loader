@@ -38,14 +38,15 @@
 ==============================================================================*/
 
 
-#define ROOT_FOLDER			"Maps/"
-#define CONFIG_FILE			ROOT_FOLDER"maps.cfg"
-#define SESSION_DIR			ROOT_FOLDER"session/"
-#define SESSION_NAME_LEN	(40)
+#define DIRECTORY_SCRIPTFILES	"./scriptfiles/"
+#define DIRECTORY_MAPS			"Maps/"
+#define DIRECTORY_SESSION		"session/"
+#define CONFIG_FILE				DIRECTORY_MAPS"maps.cfg"
 
-#define MAX_REMOVED_OBJECTS	(1000)
-#define MAX_MATERIAL_SIZE	(14)
-#define MAX_MATERIAL_LEN	(8)
+#define MAX_REMOVED_OBJECTS		(1000)
+#define MAX_MATERIAL_SIZE		(14)
+#define MAX_MATERIAL_LEN		(8)
+#define SESSION_NAME_LEN		(40)
 
 
 /*==============================================================================
@@ -99,6 +100,24 @@ new
 
 public OnFilterScriptInit()
 {
+	if(!dir_exists(DIRECTORY_SCRIPTFILES))
+	{
+		print("ERROR: Directory '"DIRECTORY_SCRIPTFILES"' not found. Creating directory.");
+		dir_create(DIRECTORY_SCRIPTFILES);
+	}
+
+	if(!dir_exists(DIRECTORY_SCRIPTFILES DIRECTORY_MAPS))
+	{
+		print("ERROR: Directory '"DIRECTORY_SCRIPTFILES DIRECTORY_MAPS"' not found. Creating directory.");
+		dir_create(DIRECTORY_SCRIPTFILES DIRECTORY_MAPS);
+	}
+
+	if(!dir_exists(DIRECTORY_SCRIPTFILES DIRECTORY_MAPS DIRECTORY_SESSION))
+	{
+		print("ERROR: Directory '"DIRECTORY_SCRIPTFILES DIRECTORY_MAPS DIRECTORY_SESSION"' not found. Creating directory.");
+		dir_create(DIRECTORY_SCRIPTFILES DIRECTORY_MAPS DIRECTORY_SESSION);
+	}
+
 	// Load config if exists
 	if(fexist(CONFIG_FILE))
 		LoadConfig();
@@ -106,7 +125,7 @@ public OnFilterScriptInit()
 	if(gDebugLevel > DEBUG_LEVEL_NONE)
 		printf("INFO: [Init] Debug Level: %d", gDebugLevel);
 
-	LoadMapsFromFolder(ROOT_FOLDER);
+	LoadMapsFromFolder(DIRECTORY_MAPS);
 
 	// Yes a standard loop is required here.
 	for(new i; i < MAX_PLAYERS; i++)
@@ -184,7 +203,7 @@ LoadMapsFromFolder(folder[])
 		type,
 		filename[256];
 
-	format(foldername, sizeof(foldername), "./scriptfiles/%s", folder);
+	format(foldername, sizeof(foldername), DIRECTORY_SCRIPTFILES"%s", folder);
 	dirhandle = dir_open(foldername);
 
 	if(gDebugLevel >= DEBUG_LEVEL_FOLDERS)
@@ -247,7 +266,7 @@ LoadMap(filename[])
 		File:file,
 		line[256],
 
-		linenumber,
+		linenumber = 1,
 		objects,
 		operations,
 		
@@ -443,22 +462,29 @@ LoadMap(filename[])
 
 		if(!strcmp(funcname, "RemoveBuildingForPlayer"))
 		{
-			if(!sscanf(funcargs, "p<,>{s[16]}dffff", modelid, posx, posy, posz, range))
+			if(gTotalObjectsToRemove < MAX_REMOVED_OBJECTS)
 			{
-				if(gDebugLevel == DEBUG_LEVEL_DATA)
+				if(!sscanf(funcargs, "p<,>{s[16]}dffff", modelid, posx, posy, posz, range))
 				{
-					printf(" DEBUG: [LoadMap] Removal: %d, %.2f, %.2f, %.2f, %.2f",
-						modelid, posx, posy, posz, range);
+					if(gDebugLevel == DEBUG_LEVEL_DATA)
+					{
+						printf(" DEBUG: [LoadMap] Removal: %d, %.2f, %.2f, %.2f, %.2f",
+							modelid, posx, posy, posz, range);
+					}
+			
+					gModelRemoveData[gTotalObjectsToRemove][remove_Model] = modelid;
+					gModelRemoveData[gTotalObjectsToRemove][remove_PosX] = posx;
+					gModelRemoveData[gTotalObjectsToRemove][remove_PosY] = posy;
+					gModelRemoveData[gTotalObjectsToRemove][remove_PosZ] = posz;
+					gModelRemoveData[gTotalObjectsToRemove][remove_Range] = range;
+			
+					gTotalObjectsToRemove++;
+					operations++;
 				}
-		
-				gModelRemoveData[gTotalObjectsToRemove][remove_Model] = modelid;
-				gModelRemoveData[gTotalObjectsToRemove][remove_PosX] = posx;
-				gModelRemoveData[gTotalObjectsToRemove][remove_PosY] = posy;
-				gModelRemoveData[gTotalObjectsToRemove][remove_PosZ] = posz;
-				gModelRemoveData[gTotalObjectsToRemove][remove_Range] = range;
-		
-				gTotalObjectsToRemove++;
-				operations++;
+			}
+			else
+			{
+				printf(" ERROR: [LoadMap] Removal on line %d failed. Removal limit reached.", linenumber);
 			}
 		}
 
@@ -488,7 +514,7 @@ public OnPlayerDisconnect(playerid, reason)
 
 	GetPlayerName(playerid, name, MAX_PLAYER_NAME);
 
-	format(filename, sizeof(filename), SESSION_DIR"%s.dat", name);
+	format(filename, sizeof(filename), DIRECTORY_SESSION"%s.dat", name);
 
 	if(gDebugLevel >= DEBUG_LEVEL_INFO)
 		printf("INFO: [OnPlayerDisconnect] Removing session data file for %s", name);
@@ -508,7 +534,7 @@ RemoveObjects_FirstLoad(playerid)
 
 	GetPlayerName(playerid, name, MAX_PLAYER_NAME);
 
-	format(filename, sizeof(filename), SESSION_DIR"%s.dat", name);
+	format(filename, sizeof(filename), DIRECTORY_SESSION"%s.dat", name);
 
 	file = fopen(filename, io_write);
 
@@ -555,7 +581,7 @@ RemoveObjects_OnLoad(playerid)
 
 	GetPlayerName(playerid, name, MAX_PLAYER_NAME);
 
-	format(filename, sizeof(filename), SESSION_DIR"%s.dat", name);
+	format(filename, sizeof(filename), DIRECTORY_SESSION"%s.dat", name);
 
 	if(!fexist(filename))
 	{

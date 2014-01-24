@@ -161,11 +161,11 @@ LoadConfig()
 
 		for(new i; i < len; i++)
 		{
-			if(line[i] == ' ')
-				continue;
-
-			if(line[i] == '-')
-				continue;
+			switch(line[i])
+			{
+				case ' ', '-', '\r', '\n':
+					continue;
+			}
 
 			if(line[i] == 'd' && (i < len - 3))
 			{
@@ -175,7 +175,11 @@ LoadConfig()
 
 				if(DEBUG_LEVEL_NONE < val <= DEBUG_LEVEL_LINES)
 					gDebugLevel = val;
+
+				continue;
 			}
+
+			printf("ERROR: Unknown option character at column %d.", i);
 
 			/*
 				Ideas for future options:

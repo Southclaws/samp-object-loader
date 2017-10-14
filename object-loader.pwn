@@ -275,7 +275,7 @@ LoadMap(filename[])
 		operations,
 		
 		funcname[32],
-		funcargs[128],
+		funcargs[256],
 		
 		globalworld = -1,
 		globalinterior = -1,
@@ -366,12 +366,13 @@ LoadMap(filename[])
 			continue;
 		}
 
-		if(sscanf(line, "p<(>s[32]p<)>s[128]{s[96]}", funcname, funcargs))
+		if(sscanf(line, "p<(>s[32]p<)>s[256]{s[96]}", funcname, funcargs))
 		{
 			linenumber++;
 			continue;
 		}
 
+		if(strfind(funcname, "=") != -1 && strfind(funcname, "Create") != -1) strdel(funcname, 0, strfind(funcname, "Create"));
 		if(!strcmp(funcname, "options", false))
 		{
 			if(!sscanf(funcargs, "p<,>ddf", globalworld, globalinterior, globalrange))
@@ -412,7 +413,7 @@ LoadMap(filename[])
 
 		if(!strcmp(funcname, "SetObjectMaterialText"))
 		{
-			if(!sscanf(funcargs, "p<,>{s[32]} d p<\">{s[2]}s[32]p<,>{s[2]} s[32] p<\">{s[2]}s[32]p<,>{s[2]} ddxxd", tmpObjIdx, tmpObjText, tmpObjResName, tmpObjFont, tmpObjFontSize, tmpObjBold, tmpObjFontCol, tmpObjBackCol, tmpObjAlign))
+			if(!sscanf(funcargs, "p<,>{s[16]} p<\">{s[1]}s[128]p<,>{s[1]} d s[32] p<\">{s[1]}s[32]p<,>{s[1]} ddxxd", tmpObjText, tmpObjIdx, tmpObjResName, tmpObjFont, tmpObjFontSize, tmpObjBold, tmpObjFontCol, tmpObjBackCol, tmpObjAlign))
 			{
 				if(gDebugLevel == DEBUG_LEVEL_DATA)
 				{
@@ -452,7 +453,7 @@ LoadMap(filename[])
 
 		if(!strcmp(funcname, "SetDynamicObjectMaterialText"))
 		{
-			if(!sscanf(funcargs, "p<,>{s[16]} p<\">{s[1]}s[32]p<,>{s[1]} d s[32] p<\">{s[1]}s[32]p<,>{s[1]} ddxxd", tmpObjText, tmpObjIdx, tmpObjResName, tmpObjFont, tmpObjFontSize, tmpObjBold, tmpObjFontCol, tmpObjBackCol, tmpObjAlign))
+			if(!sscanf(funcargs, "p<,>{s[32]} d p<\">{s[2]}s[128]p<,>{s[2]} s[32] p<\">{s[2]}s[32]p<,>{s[2]} ddxxd", tmpObjIdx, tmpObjText, tmpObjResName, tmpObjFont, tmpObjFontSize, tmpObjBold, tmpObjFontCol, tmpObjBackCol, tmpObjAlign))
 			{
 				if(gDebugLevel == DEBUG_LEVEL_DATA)
 				{
@@ -490,7 +491,7 @@ LoadMap(filename[])
 			}
 		}
 
-		if(!strcmp(funcname, "SetObjectMaterial"))
+		if(!strcmp(funcname, "SetObjectMaterial") || !strcmp(funcname, "SetDynamicObjectMaterial"))
 		{
 			if(!sscanf(funcargs, "p<,>{s[16]}dd p<\">{s[1]}s[32]p<,>{s[1]} p<\">{s[1]}s[32]p<,>{s[1]} x", tmpObjIdx, tmpObjMod, tmpObjTxd, tmpObjTex, tmpObjMatCol))
 			{

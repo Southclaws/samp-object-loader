@@ -1,0 +1,10 @@
+{
+	"user": "Southclaws",
+	"repo": "samp-object-loader",
+	"entry": "object-loader.pwn",
+	"output": "object-loader.amx",
+	"dependencies": [
+		"samp-incognito/samp-streamer-plugin",
+		"maddinat0r/sscanf"
+	]
+}
